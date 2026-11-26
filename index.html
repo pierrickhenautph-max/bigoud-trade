@@ -1604,7 +1604,10 @@ const save=()=>{if(P.admin)return;try{localStorage.setItem(KEY,JSON.stringify(SB
 const savePrefs=()=>{try{localStorage.setItem(PKEY,JSON.stringify({lang:P.lang,cb:P.cb,voice:P.voice,av:P.av,rx:P.rx,theme:P.theme}))}catch(e){}try{cloudPush()}catch(e){}};
 /* certains navigateurs (Samsung Internet) assombrissent eux-mêmes les pages claires et abîment les graphiques : on utilise alors directement le thème sombre de l'appli */
 const FORCEDARK=/SamsungBrowser/i.test(navigator.userAgent||"");
-function applyTheme(){try{const r=document.documentElement,t=P.theme==="auto"&&FORCEDARK?"dark":P.theme;if(t==="auto"){r.removeAttribute("data-theme");r.style.colorScheme="light dark"}else{r.setAttribute("data-theme",t);r.style.colorScheme=t}}catch(e){}}
+const APP_VERSION="26/11/2026 · 5";
+const mqDark=window.matchMedia?matchMedia("(prefers-color-scheme: dark)"):null;
+function applyTheme(){try{const r=document.documentElement,t=P.theme==="auto"&&FORCEDARK?"dark":P.theme;if(t==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",t);const eff=t==="auto"?(mqDark&&mqDark.matches?"dark":"light"):t;r.style.colorScheme=eff==="dark"?"dark":"only light"}catch(e){}}
+try{if(mqDark&&mqDark.addEventListener)mqDark.addEventListener("change",()=>applyTheme())}catch(e){}
 applyTheme();
 const EN_=()=>P.lang==="en";
 const L=(fr,en)=>EN_()?en:fr;
@@ -2222,7 +2225,7 @@ function settings(){
  h+=`</section><section class="card"><h2>${L("Mode Admin","Admin mode")}</h2>`;
  if(P.admin)h+=`<p>${L("Mode Admin actif : tous les niveaux sont débloqués. Ta progression de base est conservée.","Admin mode is on: every level is unlocked. Your base progress is kept.")}</p><button class="btn" data-adm="exit">${L("Revenir à ma progression","Back to my progress")}</button>`;
  else h+=`<p class="mute small">${L("Saisis le code pour tout débloquer sans toucher à ta progression.","Enter the code to unlock everything without touching your progress.")}</p><div class="row2"><input id="code" type="password" autocomplete="off" aria-label="${L("Code admin","Admin code")}" placeholder="${L("Code","Code")}"><button class="btn" data-adm="enter">${L("Valider","Confirm")}</button></div>${codeErr?`<p class="fb">✗ ${L("Code incorrect.","Wrong code.")}</p>`:""}`;
- V.innerHTML=h+`</section></div>`;
+ V.innerHTML=h+`</section><p class="mute small" style="text-align:center;margin-top:12px">Bigoud Trade · version ${APP_VERSION}</p></div>`;
 }
 
 /* ===== Léah, la bigoudène : guide, réactions et évaluation ===== */
