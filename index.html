@@ -11,6 +11,8 @@
 <link rel="icon" href="icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style>
+<script>window.addEventListener("error",function(e){try{if(!e.message)return;var d=document.getElementById("errbox");if(!d){d=document.createElement("pre");d.id="errbox";d.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:2000;margin:0;padding:10px;background:#fff;color:#b00;font:12px/1.4 monospace;white-space:pre-wrap;max-height:40vh;overflow:auto";(document.body||document.documentElement).appendChild(d)}d.textContent+="Erreur : "+e.message+" (ligne "+(e.lineno||"?")+")\n"}catch(x){}});</script>
+<noscript><p style="padding:20px;font:16px sans-serif">Bigoud Trade a besoin de JavaScript pour fonctionner.</p></noscript>
 <title>Bigoud Trade</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Bricolage+Grotesque:wght@500;600;800&display=swap">
 <style>
@@ -2621,7 +2623,7 @@ if(CL.c){CL.c.auth.onAuthStateChange((ev,ses)=>{
  else if(!u&&CL.user){CL.user=null;CL.pulled=false;render(false)}
  else if(u){CL.user=u}
 })}
-const pseudoOk=v=>/^[\p{L}\p{N}_\-. ]{2,20}$/u.test(v);
+const pseudoOk=v=>/^[A-Za-z0-9\u00C0-\u024F_\-. ]{2,20}$/.test(v);
 const pseudoOf=u=>String((u&&u.user_metadata&&u.user_metadata.pseudo)||"").slice(0,20);
 function authForm(mode,withId){
  const up=mode==="up";
