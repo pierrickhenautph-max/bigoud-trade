@@ -210,7 +210,7 @@ figure.cimg figcaption{font-size:.88rem;color:var(--mute);margin-top:4px;text-al
 .wrap{padding-top:0}
 .port{margin:0;font-size:.82rem;font-weight:500;color:var(--mute)}
 /* mode sombre forcé du navigateur (Samsung Internet) : il éclaircit les dessins ; on applique juste après l'opération inverse (mesurée sur le téléphone) pour retrouver les vraies teintes */
-html.fd .mav svg,html.fd #logo svg{filter:url(#bt-gf)}
+html.fd svg:not(svg svg):not(.gfdef){filter:url(#bt-gf)}
 /* Léah : avatar + bulle de dialogue */
 .ma{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
 .ma .mav{flex:none;width:68px;border-radius:16px;background:var(--accbg);overflow:hidden}
@@ -261,7 +261,7 @@ html.fd .mav svg,html.fd #logo svg{filter:url(#bt-gf)}
 .nearg .nearc svg{width:100%;max-width:none;height:auto;display:block;margin:0;background:var(--bg);border-radius:8px}
 .nearg .nearc b{display:block;font-size:.82rem;margin-top:4px;text-align:center}
 </style>
-</head><body><svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><filter id="bt-gf" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feColorMatrix type="matrix" values="1.9864 1.5049 -0.0063 0 -2.4283  0.6772 2.6168 0.1216 0 -2.3846  0.7255 1.4917 1.2272 0 -2.4038  0 0 0 1 0"/></filter></defs></svg>
+</head><body><svg class="gfdef" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs><filter id="bt-gf" color-interpolation-filters="sRGB" x="0" y="0" width="100%" height="100%"><feColorMatrix type="matrix" values="1.9864 1.5049 -0.0063 0 -2.4283  0.6772 2.6168 0.1216 0 -2.3846  0.7255 1.4917 1.2272 0 -2.4038  0 0 0 1 0"/></filter></defs></svg>
 <header class="top"><div class="topin"><div class="brand"><span class="logo" id="logo" aria-hidden="true"></span><div><h1 id="ttl">Bigoud Trade</h1></div></div><div class="hr"><span class="adm" id="adm" hidden>ADMIN</span><div class="cr" id="cr" aria-live="polite"></div><button class="gear" id="gear" data-tab="set" aria-label="Paramètres" title="Paramètres">⚙</button></div></div></header>
 <div class="wrap">
 <nav role="tablist" id="nav" aria-label="Sections">
@@ -1606,7 +1606,7 @@ const save=()=>{if(P.admin)return;try{localStorage.setItem(KEY,JSON.stringify(SB
 const savePrefs=()=>{try{localStorage.setItem(PKEY,JSON.stringify({lang:P.lang,cb:P.cb,voice:P.voice,av:P.av,rx:P.rx,theme:P.theme}))}catch(e){}try{cloudPush()}catch(e){}};
 /* certains navigateurs (Samsung Internet) assombrissent eux-mêmes les pages claires et abîment les graphiques : on utilise alors directement le thème sombre de l'appli */
 const FORCEDARK=/SamsungBrowser/i.test(navigator.userAgent||"");
-const APP_VERSION="26/11/2026 · 7";
+const APP_VERSION="26/11/2026 · 8";
 const mqDark=window.matchMedia?matchMedia("(prefers-color-scheme: dark)"):null;
 function applyTheme(){try{const r=document.documentElement,t=P.theme==="auto"&&FORCEDARK?"dark":P.theme;if(t==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",t);const eff=t==="auto"?(mqDark&&mqDark.matches?"dark":"light"):t;r.style.colorScheme=eff==="dark"?"dark":"only light";r.classList.toggle("fd",!!(FORCEDARK&&eff==="dark"))}catch(e){}}
 try{if(mqDark&&mqDark.addEventListener)mqDark.addEventListener("change",()=>applyTheme())}catch(e){}
