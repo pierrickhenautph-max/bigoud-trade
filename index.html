@@ -1606,7 +1606,7 @@ const save=()=>{if(P.admin)return;try{localStorage.setItem(KEY,JSON.stringify(SB
 const savePrefs=()=>{try{localStorage.setItem(PKEY,JSON.stringify({lang:P.lang,cb:P.cb,voice:P.voice,av:P.av,rx:P.rx,theme:P.theme}))}catch(e){}try{cloudPush()}catch(e){}};
 /* certains navigateurs (Samsung Internet) assombrissent eux-mêmes les pages claires et abîment les graphiques : on utilise alors directement le thème sombre de l'appli */
 const FORCEDARK=/SamsungBrowser/i.test(navigator.userAgent||"");
-const APP_VERSION="26/11/2026 · 8";
+const APP_VERSION="26/11/2026 · 9";
 const mqDark=window.matchMedia?matchMedia("(prefers-color-scheme: dark)"):null;
 function applyTheme(){try{const r=document.documentElement,t=P.theme==="auto"&&FORCEDARK?"dark":P.theme;if(t==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",t);const eff=t==="auto"?(mqDark&&mqDark.matches?"dark":"light"):t;r.style.colorScheme=eff==="dark"?"dark":"only light";r.classList.toggle("fd",!!(FORCEDARK&&eff==="dark"))}catch(e){}}
 try{if(mqDark&&mqDark.addEventListener)mqDark.addEventListener("change",()=>applyTheme())}catch(e){}
@@ -1777,12 +1777,14 @@ function pickLevel(mode){
 
 /* ----- session ----- */
 let CRS={lv:null,i:0};
+/* VOIX : interrupteur général. false = aucune voix ni bouton vocal dans l'application ; les réglages (voix, guide, explication à voix haute) et tout le code restent en place. Pour réactiver : mettre true. */
+const VOICES_ON=false;
 let TTS=null;   /* synthèse vocale : fournie par la page publiée si disponible (sinon pas de bouton) */
 let TTSS="idle";
 function voiceUI(){try{document.querySelectorAll("[data-vpause]").forEach(b=>{b.hidden=TTSS==="idle";b.textContent=TTSS==="paused"?L("▶ Reprendre","▶ Resume"):L("⏸ Pause","⏸ Pause")});document.querySelectorAll("[data-vstop]").forEach(b=>{b.hidden=TTSS==="idle"})}catch(e){}}
-try{if(window.claude&&window.claude.use)window.claude.use("tts").then(t=>{TTS=t||null;if(TTS){try{TTS.onState(s=>{TTSS=(s&&s.state)||"idle";voiceUI()})}catch(e){}if((tab==="course"&&CRS.lv)||tab==="play"||tab==="prog")render(false)}}).catch(()=>{})}catch(e){}
+try{if(VOICES_ON&&window.claude&&window.claude.use)window.claude.use("tts").then(t=>{TTS=t||null;if(TTS){try{TTS.onState(s=>{TTSS=(s&&s.state)||"idle";voiceUI()})}catch(e){}if((tab==="course"&&CRS.lv)||tab==="play"||tab==="prog")render(false)}}).catch(()=>{})}catch(e){}
 /* voix de secours hors Claude : synthèse vocale du navigateur / du téléphone */
-if(!(window.claude&&window.claude.use)&&window.speechSynthesis&&window.SpeechSynthesisUtterance){
+if(VOICES_ON&&!(window.claude&&window.claude.use)&&window.speechSynthesis&&window.SpeechSynthesisUtterance){
  const ss=window.speechSynthesis,PIT={airy:1.2,buttery:.85,glassy:1.05,rounded:.95};let TK=0;
  const st=s=>{TTSS=s;voiceUI()};
  const pickV=lang=>{let vs=[];try{vs=ss.getVoices().filter(v=>v.lang&&v.lang.toLowerCase().startsWith(lang))}catch(e){}return vs.find(v=>/natural|online|google/i.test(v.name))||vs[0]||null};
