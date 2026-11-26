@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="fr"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#0A1524">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -10,7 +11,7 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{color-scheme:light dark;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style>
 <script>window.addEventListener("error",function(e){try{if(!e.message)return;var d=document.getElementById("errbox");if(!d){d=document.createElement("pre");d.id="errbox";d.style.cssText="position:fixed;left:0;right:0;bottom:0;z-index:2000;margin:0;padding:10px;background:#fff;color:#b00;font:12px/1.4 monospace;white-space:pre-wrap;max-height:40vh;overflow:auto";(document.body||document.documentElement).appendChild(d)}d.textContent+="Erreur : "+e.message+" (ligne "+(e.lineno||"?")+")\n"}catch(x){}});</script>
 <noscript><p style="padding:20px;font:16px sans-serif">Bigoud Trade a besoin de JavaScript pour fonctionner.</p></noscript>
 <title>Bigoud Trade</title>
@@ -1596,11 +1597,13 @@ let SB=fresh();                      /* progression de base */
 try{const r=localStorage.getItem(KEY);if(r)SB=Object.assign(SB,JSON.parse(r))}catch(e){}
 SB.course=SB.course&&typeof SB.course==="object"?SB.course:{};
 SB.lp=SB.lp&&typeof SB.lp==="object"?SB.lp:{};
-let P={lang:"fr",cb:false,admin:false,voice:"airy",av:null,rx:true};   /* préférences ; le mode admin n'est jamais conservé */
-try{const r=localStorage.getItem(PKEY);if(r){const o=JSON.parse(r);P.lang=o.lang==="en"?"en":"fr";P.cb=!!o.cb;if(["buttery","airy","glassy","rounded"].includes(o.voice))P.voice=o.voice;P.rx=o.rx!==false;if(o.av==="yann"){P.av="pierrick";P.voice="buttery"}else if(["leah","pierrick","aros"].includes(o.av))P.av=o.av}}catch(e){}
+let P={lang:"fr",cb:false,admin:false,voice:"airy",av:null,rx:true,theme:"auto"};   /* préférences ; le mode admin n'est jamais conservé */
+try{const r=localStorage.getItem(PKEY);if(r){const o=JSON.parse(r);P.lang=o.lang==="en"?"en":"fr";P.cb=!!o.cb;if(["buttery","airy","glassy","rounded"].includes(o.voice))P.voice=o.voice;P.rx=o.rx!==false;if(o.theme==="light"||o.theme==="dark")P.theme=o.theme;if(o.av==="yann"){P.av="pierrick";P.voice="buttery"}else if(["leah","pierrick","aros"].includes(o.av))P.av=o.av}}catch(e){}
 let S=SB;                            /* état courant : base, ou bac à sable admin */
 const save=()=>{if(P.admin)return;try{localStorage.setItem(KEY,JSON.stringify(SB))}catch(e){}try{cloudPush()}catch(e){}};
-const savePrefs=()=>{try{localStorage.setItem(PKEY,JSON.stringify({lang:P.lang,cb:P.cb,voice:P.voice,av:P.av,rx:P.rx}))}catch(e){}try{cloudPush()}catch(e){}};
+const savePrefs=()=>{try{localStorage.setItem(PKEY,JSON.stringify({lang:P.lang,cb:P.cb,voice:P.voice,av:P.av,rx:P.rx,theme:P.theme}))}catch(e){}try{cloudPush()}catch(e){}};
+function applyTheme(){try{const r=document.documentElement;if(P.theme==="auto"){r.removeAttribute("data-theme");r.style.colorScheme="light dark"}else{r.setAttribute("data-theme",P.theme);r.style.colorScheme=P.theme}}catch(e){}}
+applyTheme();
 const EN_=()=>P.lang==="en";
 const L=(fr,en)=>EN_()?en:fr;
 const fx=(f,k)=>EN_()?EN.figs[f.id][k]:f[k];
@@ -2207,6 +2210,7 @@ function settings(){
  h+=`<section class="card"><h2>${L("Guide","Guide")}</h2>${guidePick(true)}<p class="mute small">${L("Change aussi la voix par défaut.","Also changes the default voice.")}</p></section>`;
  if(TTS)h+=`<section class="card"><h2>${L("Voix","Voice")}</h2><div class="row2">${["airy","buttery","glassy","rounded"].map((v,i)=>`<button class="chip" data-voice="${v}" aria-pressed="${P.voice===v}">${L("Voix","Voice")} ${i+1}</button>`).join("")}</div><p class="mute small">${L("Touche une voix pour l’écouter et la choisir. Elle sert à ton guide et aux cours.","Tap a voice to hear it and select it. It is used by your guide and the courses.")}</p></section>`;
  if(TTS)h+=`<section class="card"><h2>${L("Explication à voix haute","Explanation read aloud")}</h2><div class="row2"><button class="chip" data-rx="1" aria-pressed="${P.rx}">${L("Lire l’explication après une erreur","Read the explanation after a mistake")} : ${P.rx?L("activé","on"):L("désactivé","off")}</button></div><p class="mute small">${L("Après une mauvaise réponse, ton guide explique à voix haute pourquoi.","After a wrong answer, your guide explains out loud why.")}</p></section>`;
+ h+=`<section class="card"><h2>${L("Apparence","Appearance")}</h2><div class="row2">${[["auto",L("Auto","Auto")],["light",L("Clair","Light")],["dark",L("Sombre","Dark")]].map(a=>`<button class="chip" data-th="${a[0]}" aria-pressed="${P.theme===a[0]}">${a[1]}</button>`).join("")}</div><p class="mute small">${L("Auto suit le réglage de ton téléphone. Choisis Clair ou Sombre pour forcer l’un des deux.","Auto follows your phone setting. Pick Light or Dark to force one.")}</p></section>`;
  h+=`<section class="card"><h2>${L("Accessibilité","Accessibility")}</h2><div class="row2"><button class="chip" data-cb="1" aria-pressed="${P.cb}">${L("Mode daltonien","Colorblind mode")} : ${P.cb?L("activé","on"):L("désactivé","off")}</button></div><p class="mute small">${L("Remplace vert/rouge par bleu/orange et affiche les bougies de hausse en creux. Les bonnes et mauvaises réponses sont aussi marquées par ✓ et ✗.","Replaces green/red with blue/orange and shows rising candles hollow. Right and wrong answers are also marked with ✓ and ✗.")}</p></section>`;
  h+=accountCard();
  h+=installCard();
@@ -2563,6 +2567,7 @@ document.addEventListener("click",e=>{
  else if(d.avvoice){try{if(TTS)TTS.speak([{text:L("Bonjour, je suis "+(AVN[d.avvoice]||"Léah")+". Voici ma voix.","Hello, I’m "+(AVN[d.avvoice]||"Léah")+". This is my voice."),language:EN_()?"en":"fr",voice:AVV[d.avvoice]||"airy"}]).catch(()=>{})}catch(err){}}
  else if(d.av){P.av=["leah","pierrick","aros"].includes(d.av)?d.av:"leah";P.voice=AVV[P.av];savePrefs();render(tab!=="set")}
  else if(d.voice){P.voice=d.voice;savePrefs();render(false);try{if(TTS)TTS.speak([{text:L("Bonjour, je suis "+MAN()+". Voici ma voix.","Hello, I’m "+MAN()+". This is my voice."),language:EN_()?"en":"fr",voice:P.voice}]).catch(()=>{})}catch(err){}}
+ else if(d.th){P.theme=["light","dark"].includes(d.th)?d.th:"auto";applyTheme();savePrefs();render(false)}
  else if(d.cb){P.cb=!P.cb;savePrefs();render(false)}
  else if(d.simside){SIM.side=d.simside==="short"?"short":"long";$("#simbox").innerHTML=simHtml();simUpdate()}
  else if(d.adm==="enter")adminEnter();
@@ -2591,7 +2596,7 @@ const rank=o=>((o&&o.sessions)||0)*1e6+((o&&o.earned)||0);
 function cloudPush(){
  if(!CL.c||!CL.user||P.admin||!CL.pulled)return;
  clearTimeout(CL.t);
- CL.t=setTimeout(async()=>{try{await CL.c.from("progress").upsert({user_id:CL.user.id,data:SB,prefs:{lang:P.lang,cb:P.cb,voice:P.voice,av:P.av,rx:P.rx},cert:CERT,updated_at:new Date().toISOString()})}catch(e){}},1500);
+ CL.t=setTimeout(async()=>{try{await CL.c.from("progress").upsert({user_id:CL.user.id,data:SB,prefs:{lang:P.lang,cb:P.cb,voice:P.voice,av:P.av,rx:P.rx,theme:P.theme},cert:CERT,updated_at:new Date().toISOString()})}catch(e){}},1500);
 }
 async function cloudPull(){
  if(!CL.c||!CL.user)return;
@@ -2605,6 +2610,7 @@ async function cloudPull(){
    SB.course=SB.course&&typeof SB.course==="object"?SB.course:{};SB.lp=SB.lp&&typeof SB.lp==="object"?SB.lp:{};
    if(!P.admin)S=SB;
    const p=data.prefs||{};
+   if((p.theme==="light"||p.theme==="dark")&&P.theme==="auto"){P.theme=p.theme;applyTheme()}
    if(!P.av&&["leah","pierrick","aros"].includes(p.av)){P.av=p.av;if(["buttery","airy","glassy","rounded"].includes(p.voice))P.voice=p.voice}
    const c=data.cert||{};
    if(!CERT.name&&c.name)CERT.name=String(c.name).slice(0,40);
@@ -2617,7 +2623,7 @@ async function cloudPull(){
  }catch(e){CL.msg=L("Synchronisation impossible pour le moment : ta progression reste sur cet appareil.","Sync is not possible right now: your progress stays on this device.");CL.ok=false}
  G=null;render(false);
 }
-function savePrefsLocal(){try{localStorage.setItem(PKEY,JSON.stringify({lang:P.lang,cb:P.cb,voice:P.voice,av:P.av,rx:P.rx}))}catch(e){}}
+function savePrefsLocal(){try{localStorage.setItem(PKEY,JSON.stringify({lang:P.lang,cb:P.cb,voice:P.voice,av:P.av,rx:P.rx,theme:P.theme}))}catch(e){}}
 if(CL.c){CL.c.auth.onAuthStateChange((ev,ses)=>{
  const u=ses&&ses.user||null;
  if(u&&(!CL.user||CL.user.id!==u.id)){CL.user=u;CL.pulled=false;CL.modal=false;modalRender();setTimeout(cloudPull,0)}
