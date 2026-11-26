@@ -199,7 +199,7 @@ figure.cimg figcaption{font-size:.88rem;color:var(--mute);margin-top:4px;text-al
 .topin{max-width:1000px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px 14px;flex-wrap:wrap;padding-block:10px 12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .brand{display:flex;align-items:center;gap:10px;min-width:0}
 .logo{flex:none;width:46px;height:46px;border-radius:50%;background:var(--ajonc);overflow:hidden}
-.logo svg,.logo img{display:block;width:100%;height:100%}
+.logo svg,.logo img,.logo canvas{display:block;width:100%;height:100%}
 .top h1{font:800 1.4rem/1.05 var(--f-head);letter-spacing:-.01em;color:var(--hdink)}
 .tagline{margin:3px 0 0;font-size:.78rem;line-height:1.2;color:rgba(244,247,251,.75)}
 .top .cr{background:var(--ajonc);color:#0E2342;border:0}
@@ -212,7 +212,7 @@ figure.cimg figcaption{font-size:.88rem;color:var(--mute);margin-top:4px;text-al
 /* Léah : avatar + bulle de dialogue */
 .ma{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}
 .ma .mav{flex:none;width:68px;border-radius:16px;background:var(--accbg);overflow:hidden}
-.ma .mav svg,.ma .mav img{display:block;width:100%;height:auto}
+.ma .mav svg,.ma .mav img,.ma .mav canvas{display:block;width:100%;height:auto}
 .ma.lg .mav{width:92px}
 .bub{position:relative;flex:1;min-width:0;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 14px}
 .bub::before{content:"";position:absolute;left:-7px;top:24px;width:12px;height:12px;background:var(--card);border-left:1px solid var(--line);border-bottom:1px solid var(--line);transform:rotate(45deg)}
@@ -239,7 +239,7 @@ figure.cimg figcaption{font-size:.88rem;color:var(--mute);margin-top:4px;text-al
 .pickbtn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border:2px solid var(--line);border-radius:16px;background:var(--card);color:var(--ink);font:inherit;cursor:pointer}
 .pickbtn:hover,.pickbtn:focus-visible{border-color:var(--acc)}
 .pickbtn .mav{display:block;width:100%;max-width:150px;border-radius:14px;background:var(--accbg);overflow:hidden}
-.pickbtn .mav svg,.pickbtn .mav img{display:block;width:100%;height:auto}
+.pickbtn .mav svg,.pickbtn .mav img,.pickbtn .mav canvas{display:block;width:100%;height:auto}
 .pickbtn b{font:800 1.1rem var(--f-head)}
 .pickbtn .d{font-size:.84rem;color:var(--mute)}
 .pickcol{display:flex;flex-direction:column;gap:8px;align-items:stretch}
@@ -1604,7 +1604,7 @@ const save=()=>{if(P.admin)return;try{localStorage.setItem(KEY,JSON.stringify(SB
 const savePrefs=()=>{try{localStorage.setItem(PKEY,JSON.stringify({lang:P.lang,cb:P.cb,voice:P.voice,av:P.av,rx:P.rx,theme:P.theme}))}catch(e){}try{cloudPush()}catch(e){}};
 /* certains navigateurs (Samsung Internet) assombrissent eux-mêmes les pages claires et abîment les graphiques : on utilise alors directement le thème sombre de l'appli */
 const FORCEDARK=/SamsungBrowser/i.test(navigator.userAgent||"");
-const APP_VERSION="26/11/2026 · 5";
+const APP_VERSION="26/11/2026 · 6";
 const mqDark=window.matchMedia?matchMedia("(prefers-color-scheme: dark)"):null;
 function applyTheme(){try{const r=document.documentElement,t=P.theme==="auto"&&FORCEDARK?"dark":P.theme;if(t==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",t);const eff=t==="auto"?(mqDark&&mqDark.matches?"dark":"light"):t;r.style.colorScheme=eff==="dark"?"dark":"only light"}catch(e){}}
 try{if(mqDark&&mqDark.addEventListener)mqDark.addEventListener("change",()=>applyTheme())}catch(e){}
@@ -2742,21 +2742,29 @@ document.addEventListener("click",async e=>{
  try{BIP.prompt();await BIP.userChoice}catch(err){}BIP=null;render(false);
 });
 try{if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register("sw.js").catch(()=>{})}catch(e){}
-/* les personnages sont affichés comme des images : certains navigateurs recolorent les dessins en ligne en mode sombre forcé, pas les images */
+/* les personnages sont dessinés sur une zone de dessin (canvas) : certains navigateurs recolorent les dessins en ligne et les images en mode sombre forcé, pas ce contenu */
 (function(){
  const SEL=".mav svg,#logo svg";
- function toImg(svg){
+ const NS="http://www.w3.org/2000/svg";
+ function toCanvas(svg){
   try{
    if(!svg.parentNode)return;
-   let src=svg.outerHTML;
-   if(!/^<svg[^>]*xmlns=/.test(src))src=src.replace("<svg",'<svg xmlns="http://www.w3.org/2000/svg"');
-   const img=new Image();img.alt=svg.getAttribute("aria-label")||"";img.decoding="async";img.draggable=false;
-   img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(src);
-   svg.replaceWith(img);
+   const vb=svg.viewBox&&svg.viewBox.baseVal;if(!vb||!vb.width||!vb.height)return;
+   const W=420,H=Math.max(1,Math.round(W*vb.height/vb.width));
+   let src=svg.outerHTML.replace(/^<svg\b/,'<svg width="'+W+'" height="'+H+'"');
+   if(!/^<svg[^>]*xmlns=/.test(src))src=src.replace("<svg",'<svg xmlns="'+NS+'"');
+   const cv=document.createElement("canvas");cv.width=W;cv.height=H;cv.className="avcv";
+   cv.setAttribute("role","img");cv.setAttribute("aria-label",svg.getAttribute("aria-label")||"");
+   const holder=svg.cloneNode(true);
+   svg.replaceWith(cv);
+   const im=new Image();
+   im.onload=()=>{try{cv.getContext("2d").drawImage(im,0,0,W,H)}catch(e){}};
+   im.onerror=()=>{try{if(cv.parentNode)cv.replaceWith(holder)}catch(e){}};
+   im.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(src);
   }catch(e){}
  }
- const run=root=>{try{root.querySelectorAll(SEL).forEach(toImg)}catch(e){}};
- try{new MutationObserver(ms=>{ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType!==1)return;if(n.matches&&n.matches(SEL))toImg(n);else run(n)}))}).observe(document.body,{childList:true,subtree:true})}catch(e){}
+ const run=root=>{try{root.querySelectorAll(SEL).forEach(toCanvas)}catch(e){}};
+ try{new MutationObserver(ms=>{ms.forEach(m=>m.addedNodes.forEach(n=>{if(n.nodeType!==1)return;if(n.matches&&n.matches(SEL))toCanvas(n);else run(n)}))}).observe(document.body,{childList:true,subtree:true})}catch(e){}
  run(document);
 })();
 render(false);
