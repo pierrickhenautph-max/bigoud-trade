@@ -1606,7 +1606,7 @@ const save=()=>{if(P.admin)return;try{localStorage.setItem(KEY,JSON.stringify(SB
 const savePrefs=()=>{try{localStorage.setItem(PKEY,JSON.stringify({lang:P.lang,cb:P.cb,voice:P.voice,av:P.av,rx:P.rx,theme:P.theme}))}catch(e){}try{cloudPush()}catch(e){}};
 /* certains navigateurs (Samsung Internet) assombrissent eux-mêmes les pages claires et abîment les graphiques : on utilise alors directement le thème sombre de l'appli */
 const FORCEDARK=/SamsungBrowser/i.test(navigator.userAgent||"");
-const APP_VERSION="26/11/2026 · 9";
+const APP_VERSION="26/11/2026 · 10";
 const mqDark=window.matchMedia?matchMedia("(prefers-color-scheme: dark)"):null;
 function applyTheme(){try{const r=document.documentElement,t=P.theme==="auto"&&FORCEDARK?"dark":P.theme;if(t==="auto")r.removeAttribute("data-theme");else r.setAttribute("data-theme",t);const eff=t==="auto"?(mqDark&&mqDark.matches?"dark":"light"):t;r.style.colorScheme=eff==="dark"?"dark":"only light";r.classList.toggle("fd",!!(FORCEDARK&&eff==="dark"))}catch(e){}}
 try{if(mqDark&&mqDark.addEventListener)mqDark.addEventListener("change",()=>applyTheme())}catch(e){}
@@ -1895,18 +1895,63 @@ function sayExpl(q,wrong){
 }
 function unlock(n){
  const c=LEVELS[n]&&LEVELS[n].cost;
- if(!c||n!==S.unlocked+1||S.cr<c)return;
+ if(!c||n>FREE_MAX||n!==S.unlocked+1||S.cr<c)return;
  S.cr-=c;S.unlocked=n;save();render(false);
 }
 
 /* ----- onglet Jouer ----- */
 const pct=t=>t&&t.s?Math.round(t.ok/t.s*100):null;
+/* ===== Achat unique : niveaux 5 à 10 (paiement par Stripe, jamais de carte dans l'appli) ===== */
+const FREE_MAX=4,PRICE="10 €";
+const PAY={busy:false,msg:"",ok:false,wait:false};
+const isPrem=()=>!!(P.admin||CL.premium);
+function gate(){
+ if(P.admin)return;
+ if(CL.premium){if(S.unlocked<NLEV)S.unlocked=NLEV}
+ else if(S.unlocked>FREE_MAX)S.unlocked=FREE_MAX;
+}
+function paywallCard(){
+ const sg=!!CL.user;
+ return `<section class="card lv locked paywall"><div><span class="tag gold">${L("Achat unique","One-time purchase")} · ${PRICE}</span></div><h2>${L("Partie 2 · niveaux 5 à 10","Part 2 · levels 5 to 10")}</h2><p class="small mute">${L(`Les niveaux 1 à 4 restent gratuits. Un seul paiement de ${PRICE} ouvre pour toujours les niveaux 5 à 10 (marchés, levier, risque), sur tous tes appareils. Pas d’abonnement.`,`Levels 1 to 4 stay free. One single payment of ${PRICE} unlocks levels 5 to 10 (markets, leverage, risk) for good, on all your devices. No subscription.`)}</p><p class="small">${sg?L("Paiement sécurisé par Stripe : l’application ne voit jamais ta carte.","Secure payment by Stripe: the app never sees your card."):L("Il faut d’abord un compte gratuit pour relier l’achat à ton profil.","You first need a free account to link the purchase to your profile.")}</p><div class="act"><button class="btn" data-buy="1" ${PAY.busy?"disabled":""}>${sg?L(`Débloquer pour ${PRICE}`,`Unlock for ${PRICE}`):L("Créer un compte ou me connecter","Sign up or sign in")}</button></div>${PAY.msg?`<p class="small ${PAY.ok?"":"mute"}" role="status">${PAY.msg}</p>`:""}</section>`;
+}
+async function premiumPull(){
+ if(!CL.c||!CL.user)return null;
+ try{
+  const{data,error}=await CL.c.from("entitlements").select("status").eq("user_id",CL.user.id).maybeSingle();
+  if(error)throw error;
+  const p=!!(data&&data.status==="active");
+  CL.premium=p;try{if(p)localStorage.setItem("bt-prem",CL.user.id);else localStorage.removeItem("bt-prem")}catch(e){}
+  return p;
+ }catch(e){return null}
+}
+async function payWatch(){
+ for(let i=0;i<10&&!CL.premium;i++){await new Promise(r=>setTimeout(r,2500));await premiumPull()}
+ PAY.wait=false;
+ if(CL.premium){PAY.msg=L("Merci ! Les niveaux 5 à 10 sont débloqués.","Thank you! Levels 5 to 10 are unlocked.");PAY.ok=true}
+ else{PAY.msg=L("Paiement en cours de validation. Recharge la page dans une minute.","Payment is being confirmed. Reload the page in a minute.");PAY.ok=false}
+ gate();render(false);
+}
+document.addEventListener("click",async e=>{
+ const b=e.target.closest("[data-buy]");if(!b||b.disabled)return;
+ if(!CL.c){PAY.msg=L("Achat indisponible ici.","Purchase unavailable here.");PAY.ok=false;render(false);return}
+ if(!CL.user){CL.mode="up";CL.modal=true;modalRender();return}
+ PAY.busy=true;PAY.msg=L("Ouverture du paiement sécurisé…","Opening secure payment…");PAY.ok=false;render(false);
+ try{
+  const{data,error}=await CL.c.functions.invoke("create-checkout",{body:{}});
+  if(error)throw error;
+  if(data&&data.already){await premiumPull();PAY.busy=false;PAY.msg=L("Déjà débloqué.","Already unlocked.");PAY.ok=true;gate();render(false);return}
+  if(data&&data.url){location.href=data.url;return}
+  throw new Error("no url");
+ }catch(err){PAY.busy=false;PAY.msg=L("Paiement indisponible pour le moment. Réessaie dans un instant.","Payment unavailable right now. Try again in a moment.");PAY.ok=false;render(false)}
+});
 function home(){
+ gate();
  const U=S.unlocked;
  const hm=homeMsg();let h=maBlock(hm.mood,hm.text,"",{big:true})+`${noteBox()}<div class="card intro"><p><b>${L("Comment ça marche","How it works")}</b></p><p class="small">${L(`Une session compte ${SESSION} questions. Chaque bonne réponse rapporte des crédits selon le niveau (${LEVELS[1].pts} à ${LEVELS[NLEV].pts}), mais une mauvaise réponse en retire ${PENALTY}. Chaque niveau ne rapporte qu’un nombre limité de crédits (celui qu’il faut pour débloquer le suivant) : pour avancer, il faut progresser de niveau en niveau. Les crédits servent à débloquer le niveau suivant. En niveau N, environ 1 question sur 10 revient d’un niveau inférieur.`,`A session has ${SESSION} questions. Each correct answer earns credits depending on the level (${LEVELS[1].pts} to ${LEVELS[NLEV].pts}), but a wrong answer removes ${PENALTY}. Each level only earns a limited amount of credits (what it takes to unlock the next one): to move forward you have to progress level by level. Credits unlock the next level. In level N, about 1 question in 10 comes from a lower level.`)}</p></div><h2 class="sub" style="margin:14px 0 8px">${L("Partie 1 · Figures de chandeliers (niveaux 1 à 4)","Part 1 · Candlestick patterns (levels 1 to 4)")}</h2><div class="lvs">`;
  for(let n=1;n<=NLEV;n++){
   if(n===5)h+=`</div><h2 class="sub" style="margin:14px 0 8px">${L("Partie 2 · Marchés, levier et risque (niveaux 5 à 10)","Part 2 · Markets, leverage and risk (levels 5 to 10)")}</h2><div class="lvs">`;
   const L_=LEVELS[n],p=pct(S.lv[n]);
+  if(n>FREE_MAX&&!isPrem()){h+=n===FREE_MAX+1?paywallCard():`<section class="card lv locked"><div><span class="tag">${L("Verrouillé","Locked")}</span></div><p class="port">${port(n)}</p><h2>${L("Niveau","Level")} ${n} · ${lt(n)}</h2><p class="small mute">${L("Inclus dans l’achat unique.","Included in the one-time purchase.")}</p></section>`;continue}
   if(n<=U){
    h+=`<section class="card lv"><div><span class="tag haussier">${L("Débloqué","Unlocked")}</span></div><p class="port">${port(n)}</p><h2>${L("Niveau","Level")} ${n} · ${lt(n)}</h2><p class="small mute">${ld(n)}</p><p class="small">${p===null?L("Pas encore joué","Not played yet"):L(`${p} % de réussite (${S.lv[n].ok}/${S.lv[n].s})`,`${p}% correct (${S.lv[n].ok}/${S.lv[n].s})`)}</p><div class="act"><button class="btn" data-play="${n}">${L("Jouer le niveau","Play level")} ${n}</button><button class="btn sec" data-copen="${n}">${L("Lire le cours","Read the course")}</button></div></section>`;
   }else if(n===U+1){
@@ -1941,7 +1986,7 @@ function question(){
  V.innerHTML=h+"</div>";
 }
 function summary(){
- const g=G,nxt=S.unlocked<NLEV&&S.cr>=LEVELS[S.unlocked+1].cost,v=maVerdict(g);
+ const g=G,nxt=S.unlocked<NLEV&&S.unlocked<FREE_MAX&&S.cr>=LEVELS[S.unlocked+1].cost,v=maVerdict(g);
  V.innerHTML=`<div class="card end"><p class="mute small">${L("Session terminée","Session complete")}</p><div class="big">${g.corr}/${SESSION}</div><p class="vt">${v.title}</p>${maBlock(v.mood,v.text,"",{big:true})}<p>${L(`+${g.earned} crédits gagnés · solde : ${S.cr}`,`+${g.earned} credits earned · balance: ${S.cr}`)}</p>${nxt?`<p class="fb">${L(`Tu peux débloquer le niveau ${S.unlocked+1}.`,`You can unlock level ${S.unlocked+1}.`)}</p>`:""}${v.figs.length?`<div class="fiches"><p class="small mute">${L("Revoir les fiches des points à revoir :","Review the sheets for these points:")}</p><div class="row">${v.figs.map(k=>`<button class="btn sec" data-fiche="${k}">📖 ${fn(FB[k])}</button>`).join("")}</div></div>`:""}<div class="row"><button class="btn" data-play="${g.mode}">${L("Rejouer","Play again")}</button>${v.lvN?`<button class="btn sec" data-copen="${v.lvN}">${L(`Relire le cours du niveau ${v.lvN}`,`Reread the level ${v.lvN} course`)}</button>`:""}<button class="btn sec" data-back>${L("Retour aux niveaux","Back to levels")}</button></div></div>`;
 }
 function play(){if(!G)home();else if(G.fin)summary();else question()}
@@ -1988,7 +2033,7 @@ function lexUpdate(){
  $("#notes2").innerHTML=n2.length?`<h2 class="sub" style="margin-top:18px">${L("Partie 2 · Notions de marché, levier et risque","Part 2 · Market, leverage and risk notions")}</h2><div class="notes">`+n2.map(x=>`<article class="card">${x.img?NIMG[x.img]():""}<span class="tag" style="margin-top:8px">${L("Niveau","Level")} ${x.lv}</span><h3 style="margin-top:6px">${L(x.n[0],x.n[1])}</h3><p>${L(x.d[0],x.d[1])}</p><p><b>${L("Limite","Limit")} :</b> ${L(x.l[0],x.l[1])}</p></article>`).join("")+"</div>":"";
  $("#forms").innerHTML=fm.length?`<h2 class="sub" style="margin-top:18px">${L("Formules à retenir","Formulas to remember")}</h2><div class="card"><ul class="forms">`+fm.map(x=>`<li><span class="tag">${L("Niveau","Level")} ${x.lv}</span> <b>${L(x.n[0],x.n[1])}</b><br><code>${L(x.f[0],x.f[1])}</code></li>`).join("")+"</ul></div>":"";
  $("#empty").innerHTML=!ks.length&&!nbN&&!fm.length?`<p class="empty">${L("Rien ne correspond à ces filtres.","Nothing matches these filters.")}</p>`:"";
- $("#lock").textContent=S.unlocked<NLEV?L(`Niveaux ${S.unlocked+1} à ${NLEV} : à débloquer avec des crédits, dans l’onglet Jouer.`,`Levels ${S.unlocked+1} to ${NLEV}: unlock them with credits in the Play tab.`):"";
+ $("#lock").textContent=S.unlocked<NLEV?(S.unlocked>=FREE_MAX?L(`Niveaux 5 à 10 : achat unique de ${PRICE}, dans l’onglet Jouer.`,`Levels 5 to 10: one-time purchase of ${PRICE}, in the Play tab.`):L(`Niveaux ${S.unlocked+1} à ${NLEV} : à débloquer avec des crédits, dans l’onglet Jouer.`,`Levels ${S.unlocked+1} to ${NLEV}: unlock them with credits in the Play tab.`)):"";
 }
 
 /* ----- onglet Progression ----- */
@@ -1999,7 +2044,7 @@ function prog(){
  for(let n=1;n<=NLEV;n++){
   const lp=pct(S.lv[n]);
   h+=`<div class="card" style="margin-top:12px"><p class="sub">${L("Niveau","Level")} ${n} · ${lt(n)}</p>`;
-  if(n>S.unlocked){h+=`<p class="mute small">${L("Verrouillé","Locked")}${n===S.unlocked+1?L(` : ${LEVELS[n].cost} crédits pour le débloquer`,`: ${LEVELS[n].cost} credits to unlock`):""}.</p></div>`;continue}
+  if(n>S.unlocked){h+=`<p class="mute small">${L("Verrouillé","Locked")}${n>FREE_MAX?L(` : achat unique de ${PRICE} (onglet Jouer)`,`: one-time purchase of ${PRICE} (Play tab)`):n===S.unlocked+1?L(` : ${LEVELS[n].cost} crédits pour le débloquer`,`: ${LEVELS[n].cost} credits to unlock`):""}.</p></div>`;continue}
   h+=`<p class="mute small">${L("Crédits gagnés dans ce niveau","Credits earned in this level")} : ${Math.min(lvCap(n),(S.lp&&S.lp[n])||0)}/${lvCap(n)}</p><p class="mute small">${L("Cours","Course")} : ${readCount(n)}/${COURS[n].lessons.length} ${L("lues","read")}</p><p class="mute small">${lp===null?L("Pas encore joué","Not played yet"):L(`${lp} % de réussite (${S.lv[n].ok}/${S.lv[n].s})`,`${lp}% correct (${S.lv[n].ok}/${S.lv[n].s})`)}</p>`;
   const items=n>=5?TOPICS[n].map(x=>({name:L(x.n[0],x.n[1]),k:"t:"+x.id})):n===4?SCEN.map(x=>({name:L("Scénario ","Scenario ")+x.id.slice(1),k:"sc:"+x.id})):FIGS.filter(f=>f.lv===n).map(f=>({name:fn(f),k:f.id})).concat(n===1?ANATIT():[]);
   h+=items.map(it=>{
@@ -2599,7 +2644,8 @@ document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target&&e.target.i
 
 /* ===== Compte et synchronisation (Supabase) ===== */
 const SB_URL="https://wsgvjuizdjtkbpduluma.supabase.co",SB_KEY="sb_publishable_pCGkHSj_925PKxA6_YAXrQ_-NclHMHr";
-const CL={c:null,user:null,msg:"",ok:false,busy:false,email:"",pseudo:"",mode:"up",modal:false,del:false,t:null,pulled:false};
+const CL={c:null,user:null,msg:"",ok:false,busy:false,email:"",pseudo:"",mode:"up",modal:false,del:false,t:null,pulled:false,premium:false};
+try{CL.premium=!!localStorage.getItem("bt-prem")}catch(e){}
 try{if(window.supabase)CL.c=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}catch(e){CL.c=null}
 const rank=o=>((o&&o.sessions)||0)*1e6+((o&&o.earned)||0);
 function cloudPush(){
@@ -2609,6 +2655,8 @@ function cloudPush(){
 }
 async function cloudPull(){
  if(!CL.c||!CL.user)return;
+ await premiumPull();gate();
+ if(PAY.wait&&!CL.premium)payWatch();
  try{
   const{data,error}=await CL.c.from("progress").select("data,prefs,cert").eq("user_id",CL.user.id).maybeSingle();
   if(error)throw error;
@@ -2635,8 +2683,8 @@ async function cloudPull(){
 function savePrefsLocal(){try{localStorage.setItem(PKEY,JSON.stringify({lang:P.lang,cb:P.cb,voice:P.voice,av:P.av,rx:P.rx,theme:P.theme}))}catch(e){}}
 if(CL.c){CL.c.auth.onAuthStateChange((ev,ses)=>{
  const u=ses&&ses.user||null;
- if(u&&(!CL.user||CL.user.id!==u.id)){CL.user=u;CL.pulled=false;CL.modal=false;modalRender();setTimeout(cloudPull,0)}
- else if(!u&&CL.user){CL.user=null;CL.pulled=false;render(false)}
+ if(u&&(!CL.user||CL.user.id!==u.id)){CL.user=u;try{CL.premium=localStorage.getItem("bt-prem")===u.id}catch(e){CL.premium=false}CL.pulled=false;CL.modal=false;modalRender();setTimeout(cloudPull,0)}
+ else if(!u&&CL.user){CL.user=null;CL.pulled=false;CL.premium=false;try{localStorage.removeItem("bt-prem")}catch(e){}render(false)}
  else if(u){CL.user=u}
 })}
 const pseudoOk=v=>/^[A-Za-z0-9\u00C0-\u024F_\-. ]{2,20}$/.test(v);
@@ -2653,6 +2701,7 @@ function accountCard(){
   const ps=pseudoOf(CL.user);
   h+=`<p>${L("Connecté :","Signed in:")} <b>${esc(ps||CL.user.email||"")}</b></p>${ps?`<p class="mute small">${esc(CL.user.email||"")}</p>`:""}<p class="mute small">${L("Ta progression est synchronisée entre ton téléphone et le site.","Your progress syncs between your phone and the website.")}</p>`;
   h+=`<div class="acc" data-acc="1"><input name="pseudo" type="text" maxlength="20" autocomplete="nickname" placeholder="${L("Mon pseudo","My nickname")}" value="${esc(CL.pseudo!==undefined&&CL.pseudo!==""?CL.pseudo:ps)}" aria-label="${L("Mon pseudo","My nickname")}"></div><div class="row2"><button class="btn sec" data-cloud="setpseudo">${L("Enregistrer mon pseudo","Save my nickname")}</button></div>`;
+  h+=`<p class="small">${CL.premium?L("✓ Niveaux 5 à 10 débloqués (achat unique).","✓ Levels 5 to 10 unlocked (one-time purchase)."):L(`Niveaux 5 à 10 : achat unique de ${PRICE} dans l’onglet Jouer.`,`Levels 5 to 10: one-time purchase of ${PRICE} in the Play tab.`)}</p>`;
   if(CL.msg)h+=`<p class="small ${CL.ok?"":"mute"}" role="status">${CL.msg}</p>`;
   h+=`<div class="row2"><button class="btn sec" data-cloud="out">${L("Me déconnecter","Sign out")}</button></div>`;
   h+=CL.del?`<p class="fb">${L("Supprimer définitivement ton compte et ta progression en ligne ? (La copie de cet appareil est conservée.)","Permanently delete your account and online progress? (The copy on this device is kept.)")}</p><div class="row2"><button class="btn" data-cloud="delgo">${L("Oui, supprimer mon compte","Yes, delete my account")}</button><button class="btn sec" data-cloud="delno">${L("Annuler","Cancel")}</button></div>`
@@ -2712,7 +2761,7 @@ document.addEventListener("click",async e=>{
    if(!em)return say(L("Saisis d’abord ton e‑mail.","Enter your email first."));
    const{error}=await CL.c.auth.resetPasswordForEmail(em,{redirectTo:location.href.split("#")[0]});
    say(error?L("Envoi impossible pour le moment.","Could not send right now."):L("Si cette adresse a un compte, un e‑mail de réinitialisation vient d’être envoyé.","If this address has an account, a reset email has just been sent."),!error);
-  }else if(a==="out"){await CL.c.auth.signOut();CL.user=null;CL.pulled=false;say(L("Tu es déconnecté.","You are signed out."),true)}
+  }else if(a==="out"){await CL.c.auth.signOut();CL.user=null;CL.pulled=false;CL.premium=false;try{localStorage.removeItem("bt-prem")}catch(e){}say(L("Tu es déconnecté.","You are signed out."),true)}
   else if(a==="del"){CL.del=true;render(false)}
   else if(a==="delno"){CL.del=false;render(false)}
   else if(a==="delgo"){const{error}=await CL.c.rpc("delete_my_account");CL.del=false;if(error)return say(L("Suppression impossible pour le moment.","Could not delete right now."));try{await CL.c.auth.signOut()}catch(e){}CL.user=null;CL.pulled=false;say(L("Ton compte et ta progression en ligne ont été supprimés.","Your account and online progress were deleted."),true)}
@@ -2726,6 +2775,14 @@ if(CL.c){
   if(!seen&&!CL.user){CL.modal=true;modalRender()}
  }).catch(()=>{});
 }
+
+/* retour de la page de paiement */
+try{
+ const q=new URLSearchParams(location.search).get("paid");
+ if(q==="1"){PAY.wait=true;PAY.msg=L("Merci ! Vérification de ton paiement…","Thank you! Checking your payment…");PAY.ok=true;tab="play"}
+ else if(q==="0"){PAY.msg=L("Paiement annulé : rien n’a été débité.","Payment cancelled: nothing was charged.");PAY.ok=false;tab="play"}
+ if(q!==null)history.replaceState(null,"",location.pathname+location.hash);
+}catch(e){}
 
 /* ===== Installation sur téléphone (appli web) ===== */
 let BIP=null;
