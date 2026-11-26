@@ -1748,6 +1748,37 @@ let TTS=null;   /* synthèse vocale : fournie par la page publiée si disponible
 let TTSS="idle";
 function voiceUI(){try{document.querySelectorAll("[data-vpause]").forEach(b=>{b.hidden=TTSS==="idle";b.textContent=TTSS==="paused"?L("▶ Reprendre","▶ Resume"):L("⏸ Pause","⏸ Pause")});document.querySelectorAll("[data-vstop]").forEach(b=>{b.hidden=TTSS==="idle"})}catch(e){}}
 try{if(window.claude&&window.claude.use)window.claude.use("tts").then(t=>{TTS=t||null;if(TTS){try{TTS.onState(s=>{TTSS=(s&&s.state)||"idle";voiceUI()})}catch(e){}if((tab==="course"&&CRS.lv)||tab==="play"||tab==="prog")render(false)}}).catch(()=>{})}catch(e){}
+/* voix de secours hors Claude : synthèse vocale du navigateur / du téléphone */
+if(!(window.claude&&window.claude.use)&&window.speechSynthesis&&window.SpeechSynthesisUtterance){
+ const ss=window.speechSynthesis,PIT={airy:1.2,buttery:.85,glassy:1.05,rounded:.95};let TK=0;
+ const st=s=>{TTSS=s;voiceUI()};
+ const pickV=lang=>{let vs=[];try{vs=ss.getVoices().filter(v=>v.lang&&v.lang.toLowerCase().startsWith(lang))}catch(e){}return vs.find(v=>/natural|online|google/i.test(v.name))||vs[0]||null};
+ TTS={
+  speak(lines){
+   try{ss.cancel()}catch(e){}
+   const tok=++TK,ls=(Array.isArray(lines)?lines:[{text:lines}]).filter(l=>l&&l.text);
+   return new Promise((res,rej)=>{
+    if(!ls.length){res();return}
+    let i=0;
+    const next=()=>{
+     if(tok!==TK)return;
+     if(i>=ls.length){st("idle");res();return}
+     const l=ls[i++],u=new SpeechSynthesisUtterance(String(l.text)),lg=String(l.language||"fr").slice(0,2);
+     u.lang=lg==="en"?"en-US":"fr-FR";const v=pickV(lg);if(v)u.voice=v;
+     u.pitch=PIT[l.voice]||1;u.rate=1;
+     u.onend=next;
+     u.onerror=()=>{if(tok===TK){st("idle");rej({code:"error"})}};
+     try{ss.speak(u)}catch(e){st("idle");rej({code:"error",message:String(e)})}
+    };
+    st("speaking");next();
+   });
+  },
+  stop(){TK++;try{ss.cancel()}catch(e){}st("idle")},
+  pause(){try{ss.pause();st("paused")}catch(e){}},
+  resume(){try{ss.resume();st("speaking")}catch(e){}},
+  onState(){}
+ };
+}
 let tab="play",G=null,resetAsk=false,codeErr=false;
 function startSession(mode){
  if(mode!=="all"&&+mode>S.unlocked)return;
