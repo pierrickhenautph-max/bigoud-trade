@@ -1,5 +1,17 @@
+<!doctype html>
+<html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0A1524">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bigoud Trade">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="description" content="Entraîne-toi à lire les bougies japonaises, les pourcentages et le levier, avec Léah, Pierrick et Aros.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style>
 <title>Bigoud Trade</title>
-<meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Bricolage+Grotesque:wght@500;600;800&display=swap">
 <style>
 /* Mise en page : en-tête avec solde de crédits, trois onglets (Jouer, Lexique, Progression), cartes de niveaux puis sessions de 10 questions */
@@ -138,6 +150,13 @@ summary{cursor:pointer;color:var(--acc);font-weight:600}
 .simgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
 .sim label{display:grid;gap:4px;font-size:.9rem}
 .acc{display:flex;flex-direction:column;gap:8px;margin:8px 0}
+#authm{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:16px}
+#authm .amback{position:absolute;inset:0;background:rgba(10,21,36,.6)}
+#authm .amcard{position:relative;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:20px;width:100%;max-width:420px;max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,.35)}
+#authm .amcard h2{margin:0 36px 8px 0}
+#authm .amx{position:absolute;top:10px;right:10px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;cursor:pointer}
+#authm input{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%;min-width:0}
+.acc input[type=text],.acc input[type=email],.acc input[type=password]{font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0;width:100%}
 .sim input[type=number]{font:inherit;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);min-width:0}
 .sim input[type=range]{width:100%;accent-color:var(--acc)}
 .sim p{margin:4px 0}
@@ -236,6 +255,7 @@ figure.cimg figcaption{font-size:.88rem;color:var(--mute);margin-top:4px;text-al
 .nearg .nearc svg{width:100%;max-width:none;height:auto;display:block;margin:0;background:var(--bg);border-radius:8px}
 .nearg .nearc b{display:block;font-size:.82rem;margin-top:4px;text-align:center}
 </style>
+</head><body>
 <header class="top"><div class="topin"><div class="brand"><span class="logo" id="logo" aria-hidden="true"></span><div><h1 id="ttl">Bigoud Trade</h1></div></div><div class="hr"><span class="adm" id="adm" hidden>ADMIN</span><div class="cr" id="cr" aria-live="polite"></div><button class="gear" id="gear" data-tab="set" aria-label="Paramètres" title="Paramètres">⚙</button></div></div></header>
 <div class="wrap">
 <nav role="tablist" id="nav" aria-label="Sections">
@@ -2186,6 +2206,7 @@ function settings(){
  if(TTS)h+=`<section class="card"><h2>${L("Explication à voix haute","Explanation read aloud")}</h2><div class="row2"><button class="chip" data-rx="1" aria-pressed="${P.rx}">${L("Lire l’explication après une erreur","Read the explanation after a mistake")} : ${P.rx?L("activé","on"):L("désactivé","off")}</button></div><p class="mute small">${L("Après une mauvaise réponse, ton guide explique à voix haute pourquoi.","After a wrong answer, your guide explains out loud why.")}</p></section>`;
  h+=`<section class="card"><h2>${L("Accessibilité","Accessibility")}</h2><div class="row2"><button class="chip" data-cb="1" aria-pressed="${P.cb}">${L("Mode daltonien","Colorblind mode")} : ${P.cb?L("activé","on"):L("désactivé","off")}</button></div><p class="mute small">${L("Remplace vert/rouge par bleu/orange et affiche les bougies de hausse en creux. Les bonnes et mauvaises réponses sont aussi marquées par ✓ et ✗.","Replaces green/red with blue/orange and shows rising candles hollow. Right and wrong answers are also marked with ✓ and ✗.")}</p></section>`;
  h+=accountCard();
+ h+=installCard();
  h+=`<section class="card"><h2>${L("Progression","Progress")}</h2>`;
  if(P.admin)h+=`<p class="mute small">${L("Indisponible en Mode Admin : ta progression de base n’est pas touchée.","Unavailable in Admin mode: your base progress is untouched.")}</p>`;
  else h+=resetAsk?`<p class="fb">${L("Effacer crédits, niveaux et progression ?","Erase credits, levels and progress?")}</p><div class="row2"><button class="btn" data-reset="2">${L("Oui, tout effacer","Yes, erase everything")}</button><button class="btn sec" data-reset="0">${L("Annuler","Cancel")}</button></div>`:`<button class="btn sec" data-reset="1">${L("Réinitialiser la progression","Reset progress")}</button>`;
@@ -2561,7 +2582,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Enter"&&e.target&&e.target.i
 
 /* ===== Compte et synchronisation (Supabase) ===== */
 const SB_URL="https://wsgvjuizdjtkbpduluma.supabase.co",SB_KEY="sb_publishable_pCGkHSj_925PKxA6_YAXrQ_-NclHMHr";
-const CL={c:null,user:null,msg:"",ok:false,busy:false,email:"",pw:"",del:false,t:null,pulled:false};
+const CL={c:null,user:null,msg:"",ok:false,busy:false,email:"",pseudo:"",mode:"up",modal:false,del:false,t:null,pulled:false};
 try{if(window.supabase)CL.c=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}catch(e){CL.c=null}
 const rank=o=>((o&&o.sessions)||0)*1e6+((o&&o.earned)||0);
 function cloudPush(){
@@ -2596,43 +2617,81 @@ async function cloudPull(){
 function savePrefsLocal(){try{localStorage.setItem(PKEY,JSON.stringify({lang:P.lang,cb:P.cb,voice:P.voice,av:P.av,rx:P.rx}))}catch(e){}}
 if(CL.c){CL.c.auth.onAuthStateChange((ev,ses)=>{
  const u=ses&&ses.user||null;
- if(u&&(!CL.user||CL.user.id!==u.id)){CL.user=u;CL.pulled=false;setTimeout(cloudPull,0)}
+ if(u&&(!CL.user||CL.user.id!==u.id)){CL.user=u;CL.pulled=false;CL.modal=false;modalRender();setTimeout(cloudPull,0)}
  else if(!u&&CL.user){CL.user=null;CL.pulled=false;render(false)}
  else if(u){CL.user=u}
 })}
+const pseudoOk=v=>/^[\p{L}\p{N}_\-. ]{2,20}$/u.test(v);
+const pseudoOf=u=>String((u&&u.user_metadata&&u.user_metadata.pseudo)||"").slice(0,20);
+function authForm(mode,withId){
+ const up=mode==="up";
+ return `<div class="acc" data-acc="1">${up?`<input name="pseudo" type="text" maxlength="20" autocomplete="nickname" placeholder="${L("Pseudo (2 à 20 caractères)","Nickname (2–20 characters)")}" value="${esc(CL.pseudo||"")}" aria-label="${L("Pseudo","Nickname")}">`:""}<input name="email" type="email" autocomplete="email" placeholder="${L("Adresse e‑mail","Email address")}" value="${esc(CL.email||"")}" aria-label="${L("Adresse e‑mail","Email address")}"><input name="pw" type="password" autocomplete="${up?"new-password":"current-password"}" placeholder="${L("Mot de passe (8 caractères min.)","Password (8+ characters)")}" aria-label="${L("Mot de passe","Password")}"></div>`;
+}
+const privNote=()=>`<p class="mute small">${L("En créant un compte, tu acceptes que ton e‑mail, ton pseudo et ta progression soient enregistrés (hébergement Supabase, Union européenne) uniquement pour faire fonctionner l’application. Réservé aux personnes de 15 ans et plus. Tu peux supprimer ton compte à tout moment.","By creating an account you agree that your email, nickname and progress are stored (Supabase hosting, European Union) only to run the app. For people aged 15 and over. You can delete your account at any time.")}</p>`;
 function accountCard(){
  let h=`<section class="card"><h2>${L("Mon compte","My account")}</h2>`;
  if(!CL.c)return h+`<p class="mute small">${L("Compte indisponible ici : ta progression reste sur cet appareil.","Account unavailable here: your progress stays on this device.")}</p></section>`;
  if(CL.user){
-  h+=`<p>${L("Connecté :","Signed in:")} <b>${esc(CL.user.email||"")}</b></p><p class="mute small">${L("Ta progression est synchronisée entre ton téléphone et le site.","Your progress syncs between your phone and the website.")}</p>`;
+  const ps=pseudoOf(CL.user);
+  h+=`<p>${L("Connecté :","Signed in:")} <b>${esc(ps||CL.user.email||"")}</b></p>${ps?`<p class="mute small">${esc(CL.user.email||"")}</p>`:""}<p class="mute small">${L("Ta progression est synchronisée entre ton téléphone et le site.","Your progress syncs between your phone and the website.")}</p>`;
+  h+=`<div class="acc" data-acc="1"><input name="pseudo" type="text" maxlength="20" autocomplete="nickname" placeholder="${L("Mon pseudo","My nickname")}" value="${esc(CL.pseudo!==undefined&&CL.pseudo!==""?CL.pseudo:ps)}" aria-label="${L("Mon pseudo","My nickname")}"></div><div class="row2"><button class="btn sec" data-cloud="setpseudo">${L("Enregistrer mon pseudo","Save my nickname")}</button></div>`;
   if(CL.msg)h+=`<p class="small ${CL.ok?"":"mute"}" role="status">${CL.msg}</p>`;
   h+=`<div class="row2"><button class="btn sec" data-cloud="out">${L("Me déconnecter","Sign out")}</button></div>`;
   h+=CL.del?`<p class="fb">${L("Supprimer définitivement ton compte et ta progression en ligne ? (La copie de cet appareil est conservée.)","Permanently delete your account and online progress? (The copy on this device is kept.)")}</p><div class="row2"><button class="btn" data-cloud="delgo">${L("Oui, supprimer mon compte","Yes, delete my account")}</button><button class="btn sec" data-cloud="delno">${L("Annuler","Cancel")}</button></div>`
    :`<div class="row2"><button class="btn sec" data-cloud="del">${L("Supprimer mon compte","Delete my account")}</button></div>`;
  }else{
-  h+=`<p class="mute small">${L("Facultatif : crée un compte pour retrouver ta progression sur tous tes appareils.","Optional: create an account to keep your progress on all your devices.")}</p>
-  <div class="acc"><input id="cl-email" type="email" autocomplete="email" placeholder="${L("Adresse e‑mail","Email address")}" value="${esc(CL.email||"")}" aria-label="${L("Adresse e‑mail","Email address")}"><input id="cl-pw" type="password" autocomplete="current-password" placeholder="${L("Mot de passe (8 caractères min.)","Password (8+ characters)")}" aria-label="${L("Mot de passe","Password")}"></div>
-  <div class="row2"><button class="btn" data-cloud="in" ${CL.busy?"disabled":""}>${L("Me connecter","Sign in")}</button><button class="btn sec" data-cloud="up" ${CL.busy?"disabled":""}>${L("Créer un compte","Create account")}</button><button class="btn sec" data-cloud="reset" ${CL.busy?"disabled":""}>${L("Mot de passe oublié","Forgot password")}</button></div>`;
+  h+=`<p class="mute small">${L("Facultatif : crée un compte pour retrouver ta progression sur tous tes appareils.","Optional: create an account to keep your progress on all your devices.")}</p>`;
+  h+=authForm(CL.mode);
+  h+=`<div class="row2"><button class="btn" data-cloud="${CL.mode==="up"?"up":"in"}" ${CL.busy?"disabled":""}>${CL.mode==="up"?L("Créer mon compte","Create my account"):L("Me connecter","Sign in")}</button><button class="btn sec" data-cloud="mode" data-to="${CL.mode==="up"?"in":"up"}">${CL.mode==="up"?L("J’ai déjà un compte","I already have an account"):L("Créer un compte","Create account")}</button>${CL.mode==="up"?"":`<button class="btn sec" data-cloud="reset" ${CL.busy?"disabled":""}>${L("Mot de passe oublié","Forgot password")}</button>`}</div>`;
   if(CL.msg)h+=`<p class="small ${CL.ok?"":"mute"}" role="status">${CL.msg}</p>`;
-  h+=`<p class="mute small">${L("En créant un compte, tu acceptes que ton e‑mail et ta progression soient enregistrés (hébergement Supabase, Union européenne) uniquement pour faire fonctionner l’application. Réservé aux personnes de 15 ans et plus. Tu peux supprimer ton compte à tout moment.","By creating an account you agree that your email and progress are stored (Supabase hosting, European Union) only to run the app. For people aged 15 and over. You can delete your account at any time.")}</p>`;
+  h+=privNote();
  }
  return h+`</section>`;
 }
-document.addEventListener("input",e=>{if(e.target.id==="cl-email")CL.email=e.target.value.trim();else if(e.target.id==="cl-pw")CL.pw=e.target.value});
+/* fenêtre d'accueil : connexion ou création de compte */
+function modalRender(){
+ let m=document.getElementById("authm");
+ if(!CL.modal||CL.user||!CL.c){if(m)m.remove();return}
+ if(!m){m=document.createElement("div");m.id="authm";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-labelledby","authm-t");document.body.appendChild(m)}
+ const up=CL.mode==="up";
+ m.innerHTML=`<div class="amback" data-cloud="later"></div><div class="amcard" data-acc-wrap="1"><button class="amx" data-cloud="later" aria-label="${L("Fermer","Close")}">✕</button><h2 id="authm-t">${L("Bienvenue sur Bigoud Trade","Welcome to Bigoud Trade")}</h2><p class="mute small">${up?L("Crée ton compte pour garder ta progression et la retrouver sur tous tes appareils.","Create your account to keep your progress on all your devices."):L("Connecte‑toi pour retrouver ta progression sur tous tes appareils.","Sign in to find your progress on all your devices.")}</p>${authForm(CL.mode)}<div class="row2"><button class="btn" data-cloud="${up?"up":"in"}" ${CL.busy?"disabled":""}>${up?L("Créer mon compte","Create my account"):L("Me connecter","Sign in")}</button><button class="btn sec" data-cloud="mode" data-to="${up?"in":"up"}">${up?L("J’ai déjà un compte","I already have an account"):L("Créer un compte","Create account")}</button></div>${CL.msg?`<p class="small ${CL.ok?"":"mute"}" role="status">${CL.msg}</p>`:""}${up?privNote():`<div class="row2"><button class="chip" data-cloud="reset" ${CL.busy?"disabled":""}>${L("Mot de passe oublié","Forgot password")}</button></div>`}<div class="row2"><button class="chip" data-cloud="later">${L("Continuer sans compte","Continue without an account")}</button></div></div>`;
+ const f=m.querySelector("input");if(f&&!m.dataset.f){m.dataset.f="1";try{f.focus()}catch(e){}}
+}
+const closeModal=()=>{CL.modal=false;try{sessionStorage.setItem("bt-nomodal","1")}catch(e){}modalRender()};
+const esc2=x=>x;
+document.addEventListener("input",e=>{
+ const n=e.target&&e.target.name;if(!e.target.closest||!e.target.closest("[data-acc]"))return;
+ if(n==="email")CL.email=e.target.value.trim();else if(n==="pseudo")CL.pseudo=e.target.value;
+});
+document.addEventListener("keydown",e=>{
+ if(e.key==="Escape"&&CL.modal)closeModal();
+ if(e.key==="Enter"&&e.target&&e.target.closest&&e.target.closest("[data-acc]")){const root=e.target.closest(".amcard")||e.target.closest("section")||document;const b=root.querySelector("button.btn[data-cloud]");if(b)b.click()}
+});
 document.addEventListener("click",async e=>{
- const b=e.target.closest("button[data-cloud]");if(!b||b.disabled||!CL.c)return;
- const a=b.dataset.cloud,say=(m,ok)=>{CL.msg=m;CL.ok=!!ok;CL.busy=false;render(false)};
- const em=($("#cl-email")||{}).value||CL.email,pw=($("#cl-pw")||{}).value||CL.pw;CL.email=(em||"").trim();
+ const b=e.target.closest("[data-cloud]");if(!b||b.disabled||!CL.c)return;
+ const a=b.dataset.cloud,say=(m,ok)=>{CL.msg=m;CL.ok=!!ok;CL.busy=false;render(false);modalRender()};
+ if(a==="later"){closeModal();return}
+ if(a==="mode"){CL.mode=b.dataset.to==="up"?"up":"in";CL.msg="";render(false);modalRender();return}
+ const root=b.closest(".amcard")||b.closest("section")||document,val=n=>{const el=root.querySelector('[name="'+n+'"]');return el?el.value:""};
+ const em=(val("email")||CL.email||"").trim(),pw=val("pw"),ps=(val("pseudo")||"").trim();CL.email=em;if(ps)CL.pseudo=ps;
  try{
   if(a==="in"||a==="up"){
-   if(!CL.email||!pw)return say(L("Saisis ton e‑mail et ton mot de passe.","Enter your email and password."));
-   if(a==="up"&&pw.length<8)return say(L("Le mot de passe doit faire au moins 8 caractères.","The password must be at least 8 characters."));
-   CL.busy=true;CL.msg=L("Un instant…","One moment…");render(false);
-   if(a==="in"){const{error}=await CL.c.auth.signInWithPassword({email:CL.email,password:pw});CL.pw="";if(error)return say(L("Connexion impossible : vérifie ton e‑mail et ton mot de passe (et que ton adresse est confirmée).","Sign-in failed: check your email and password (and that your address is confirmed)."));CL.busy=false}
-   else{const{data,error}=await CL.c.auth.signUp({email:CL.email,password:pw,options:{emailRedirectTo:location.href.split("#")[0]}});CL.pw="";if(error)return say(L("Création impossible : ","Could not create the account: ")+error.message);if(!data.session)return say(L("Compte créé. Ouvre le lien reçu par e‑mail pour le confirmer, puis connecte‑toi.","Account created. Open the link sent by email to confirm it, then sign in."),true);CL.busy=false}
+   if(!em||!pw)return say(L("Saisis ton e‑mail et ton mot de passe.","Enter your email and password."));
+   if(a==="up"){
+    if(!pseudoOk(ps))return say(L("Choisis un pseudo de 2 à 20 caractères (lettres, chiffres, espace, tiret).","Choose a nickname of 2–20 characters (letters, digits, space, hyphen)."));
+    if(pw.length<8)return say(L("Le mot de passe doit faire au moins 8 caractères.","The password must be at least 8 characters."));
+   }
+   CL.busy=true;CL.msg=L("Un instant…","One moment…");render(false);modalRender();
+   if(a==="in"){const{error}=await CL.c.auth.signInWithPassword({email:em,password:pw});if(error)return say(L("Connexion impossible : vérifie ton e‑mail et ton mot de passe (et que ton adresse est confirmée).","Sign-in failed: check your email and password (and that your address is confirmed)."));CL.busy=false}
+   else{const{data,error}=await CL.c.auth.signUp({email:em,password:pw,options:{data:{pseudo:ps},emailRedirectTo:location.href.split("#")[0]}});if(error)return say(L("Création impossible : ","Could not create the account: ")+error.message);if(!data.session)return say(L("Compte créé. Ouvre le lien reçu par e‑mail pour le confirmer, puis connecte‑toi.","Account created. Open the link sent by email to confirm it, then sign in."),true);CL.busy=false}
+  }else if(a==="setpseudo"){
+   if(!pseudoOk(ps))return say(L("Choisis un pseudo de 2 à 20 caractères (lettres, chiffres, espace, tiret).","Choose a nickname of 2–20 characters (letters, digits, space, hyphen)."));
+   const{data,error}=await CL.c.auth.updateUser({data:{pseudo:ps}});
+   if(error)return say(L("Enregistrement impossible pour le moment.","Could not save right now."));
+   if(data&&data.user)CL.user=data.user;say(L("Pseudo enregistré.","Nickname saved."),true);
   }else if(a==="reset"){
-   if(!CL.email)return say(L("Saisis d’abord ton e‑mail.","Enter your email first."));
-   const{error}=await CL.c.auth.resetPasswordForEmail(CL.email,{redirectTo:location.href.split("#")[0]});
+   if(!em)return say(L("Saisis d’abord ton e‑mail.","Enter your email first."));
+   const{error}=await CL.c.auth.resetPasswordForEmail(em,{redirectTo:location.href.split("#")[0]});
    say(error?L("Envoi impossible pour le moment.","Could not send right now."):L("Si cette adresse a un compte, un e‑mail de réinitialisation vient d’être envoyé.","If this address has an account, a reset email has just been sent."),!error);
   }else if(a==="out"){await CL.c.auth.signOut();CL.user=null;CL.pulled=false;say(L("Tu es déconnecté.","You are signed out."),true)}
   else if(a==="del"){CL.del=true;render(false)}
@@ -2640,6 +2699,35 @@ document.addEventListener("click",async e=>{
   else if(a==="delgo"){const{error}=await CL.c.rpc("delete_my_account");CL.del=false;if(error)return say(L("Suppression impossible pour le moment.","Could not delete right now."));try{await CL.c.auth.signOut()}catch(e){}CL.user=null;CL.pulled=false;say(L("Ton compte et ta progression en ligne ont été supprimés.","Your account and online progress were deleted."),true)}
  }catch(err){say(L("Une erreur est survenue. Réessaie dans un instant.","Something went wrong. Try again in a moment."))}
 });
+/* ouverture : fenêtre de connexion si personne n'est connecté */
+if(CL.c){
+ CL.c.auth.getSession().then(({data})=>{
+  if(data&&data.session)return;
+  let seen=false;try{seen=sessionStorage.getItem("bt-nomodal")==="1"}catch(e){}
+  if(!seen&&!CL.user){CL.modal=true;modalRender()}
+ }).catch(()=>{});
+}
+
+/* ===== Installation sur téléphone (appli web) ===== */
+let BIP=null;
+const isStandalone=()=>{try{return matchMedia("(display-mode: standalone)").matches||navigator.standalone===true}catch(e){return false}};
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();BIP=e;if(tab==="set")render(false)});
+window.addEventListener("appinstalled",()=>{BIP=null;if(tab==="set")render(false)});
+function installCard(){
+ if(isStandalone())return "";
+ const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+ let h=`<section class="card"><h2>${L("Installer sur mon téléphone","Install on my phone")}</h2>`;
+ if(BIP)h+=`<p class="mute small">${L("Ajoute Bigoud Trade à ton écran d’accueil : l’appli s’ouvre en plein écran, comme une vraie appli.","Add Bigoud Trade to your home screen: it opens full screen like a real app.")}</p><div class="row2"><button class="btn" data-pwa="install">${L("Installer l’appli","Install the app")}</button></div>`;
+ else if(ios)h+=`<p class="mute small">${L("Sur iPhone : touche le bouton Partager (le carré avec une flèche), puis « Sur l’écran d’accueil ».","On iPhone: tap the Share button (the square with an arrow), then “Add to Home Screen”.")}</p>`;
+ else h+=`<p class="mute small">${L("Sur Android (Chrome) : touche les trois points en haut à droite, puis « Installer l’application » ou « Ajouter à l’écran d’accueil ».","On Android (Chrome): tap the three dots at the top right, then “Install app” or “Add to Home screen”.")}</p>`;
+ return h+`</section>`;
+}
+document.addEventListener("click",async e=>{
+ const b=e.target.closest("[data-pwa]");if(!b||!BIP)return;
+ try{BIP.prompt();await BIP.userChoice}catch(err){}BIP=null;render(false);
+});
+try{if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol))navigator.serviceWorker.register("sw.js").catch(()=>{})}catch(e){}
 render(false);
 </script>
+</body></html>
 
