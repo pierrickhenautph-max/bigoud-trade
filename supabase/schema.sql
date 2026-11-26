@@ -21,3 +21,8 @@ create policy "lire son achat" on public.entitlements
   for select to authenticated using (auth.uid() = user_id);
 
 revoke insert, update, delete on public.entitlements from anon, authenticated;
+
+-- Droits explicites (nécessaires sur les projets récents) :
+-- le serveur (service_role) écrit, l'utilisateur connecté lit sa propre ligne.
+grant all on table public.entitlements to service_role;
+grant select on table public.entitlements to authenticated;
