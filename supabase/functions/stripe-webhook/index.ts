@@ -45,7 +45,10 @@ Deno.serve(async (req) => {
         currency: s.currency ?? null,
         updated_at: now,
       });
-      if (error) return new Response("db error", { status: 500 });
+      if (error) {
+        console.error("entitlements upsert:", JSON.stringify(error));
+        return new Response("db error: " + (error.message ?? "") + " | " + (error.code ?? ""), { status: 500 });
+      }
     }
   } else if (ev.type === "charge.refunded") {
     const c = ev.data.object;
