@@ -19,7 +19,7 @@
 @media (prefers-color-scheme:dark){:root{--bg:#0A1524;--card:#112239;--ink:#E8EEF6;--mute:#9AABC0;--line:#243852;--acc:#F2C23A;--onacc:#0A1524;--accbg:rgba(242,194,58,.14);--up:#2fcf9b;--dn:#ff6e66}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 var(--f-body)}
+body{margin:0;background:var(--bg);background-size:clamp(420px,58vw,640px) auto;background-repeat:repeat;color:var(--ink);font:16px/1.55 var(--f-body)}
 .wrap{max-width:860px;margin:0 auto;padding-block:40px 28px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .eyebrow{font:600 .75rem/1 var(--f-body);letter-spacing:.12em;text-transform:uppercase;color:var(--mute);margin:0 0 10px}
 h1{font:800 clamp(1.7rem,5vw,2.4rem)/1.1 var(--f-head);margin:0 0 10px;text-wrap:balance}
@@ -37,7 +37,8 @@ a.card.live{border:1.5px solid var(--acc);transition:transform .15s,box-shadow .
 a.card.live:hover,a.card.live:focus-visible{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.14);outline:none}
 a.card.live:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
 .go{margin-top:auto;padding-top:6px;font-weight:600;color:var(--acc)}
-.card.soon{opacity:.8}
+.card.soon h2{color:var(--mute)}
+.card.soon .pic svg{opacity:.85}
 .note{margin:26px 0 0;font-size:.85rem;color:var(--mute);max-width:60ch}
 @media (prefers-reduced-motion:reduce){a.card.live{transition:none}a.card.live:hover{transform:none}}
 </style></head>
@@ -72,12 +73,12 @@ a.card.live:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
 <script>
 /* Aros, le chat tuxedo en coiffe bigoudène : même dessin que dans l'application (expression neutre), avec une tenue par module.
    Tenues : trade = cravate rouge + broche en bougies ; doc = blouse blanche, stéthoscope, miroir frontal (sans coiffe) ; student = toque de diplômé + lunettes rondes (sans coiffe). */
-function arosSvg(outfit){
+function arosSvg(outfit,vb,at){
  var ey="#F7D43A",eb="#C79A10";
  function eye(cx){return '<ellipse cx="'+cx+'" cy="130" rx="12" ry="13" fill="'+ey+'" stroke="'+eb+'" stroke-width="1.6"/><path d="M'+(cx-11)+' 134Q'+cx+' 150 '+(cx+11)+' 134Q'+cx+' 141 '+(cx-11)+' 134Z" fill="#FBEA8C"/><path d="M'+(cx-10)+' 124Q'+cx+' 116 '+(cx+10)+' 124Q'+cx+' 120 '+(cx-10)+' 124Z" fill="'+eb+'"/><ellipse cx="'+cx+'" cy="130" rx="3.6" ry="9.2" fill="#10151F"/><circle cx="'+(cx-4.5)+'" cy="124.5" r="3.4" fill="#fff"/><circle cx="'+(cx+4.5)+'" cy="137" r="1.6" fill="#fff"/>'}
  function lid(d){return '<path d="'+d+'" fill="none" stroke="#8576AE" stroke-width="2" stroke-linecap="round"/>'}
  var trade=outfit==="trade",doc=outfit==="doc",stu=outfit==="student";
- var s='<svg viewBox="50 -16 236 356" xmlns="http://www.w3.org/2000/svg">';
+ var s='<svg '+(at||'')+' viewBox="'+(vb||'50 -16 236 356')+'" xmlns="http://www.w3.org/2000/svg">';
  s+='<path d="M186 316C238 326 276 300 270 262C266 238 246 226 232 238" fill="none" stroke="#4A4458" stroke-width="22" stroke-linecap="round"/><path d="M186 316C238 326 276 300 270 262C266 238 246 226 232 238" fill="none" stroke="#1B1620" stroke-width="19" stroke-linecap="round"/>';
  s+='<path d="M256 232C246 226 238 230 232 238" fill="none" stroke="#CFC8DA" stroke-width="22" stroke-linecap="round"/><path d="M256 232C246 226 238 230 232 238" fill="none" stroke="#fff" stroke-width="19" stroke-linecap="round"/>';
  s+='<path d="M140 198C178 198 200 244 198 298C197 324 182 336 140 336C98 336 83 324 82 298C80 244 102 198 140 198Z" fill="#1B1620" stroke="#4A4458" stroke-width="1.8"/>';
@@ -129,6 +130,19 @@ function arosSvg(outfit){
  }
  return s+'</svg>';
 }
+/* Fond de page : têtes d'Aros avec ses coiffes, en filigrane (motif répété, très discret) */
+function arosPattern(){
+ var heads=[["trade",40,30,-6],["doc",370,40,5],["student",40,300,-4],["trade",370,310,6]];
+ var mq=window.matchMedia&&matchMedia("(prefers-color-scheme: dark)");
+ function apply(){
+  var op=(mq&&mq.matches)?0.1:0.07;
+  var g=heads.map(function(h){return '<g transform="translate('+h[1]+' '+h[2]+') rotate('+h[3]+' 44 60)">'+arosSvg(h[0],"58 -18 164 224",'width="88" height="120"')+'</g>'}).join("");
+  var svg='<svg xmlns="http://www.w3.org/2000/svg" width="640" height="560" viewBox="0 0 640 560"><g opacity="'+op+'">'+g+'</g></svg>';
+  document.body.style.backgroundImage='url("data:image/svg+xml,'+encodeURIComponent(svg)+'")';
+ }
+ apply();if(mq&&mq.addEventListener)mq.addEventListener("change",apply);
+}
+arosPattern();
 (function(){
 var en=/^en/i.test(navigator.language||"");
 var T=en?{
