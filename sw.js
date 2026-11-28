@@ -1,19 +1,12 @@
-/* Bigoud Trade : copie hors ligne de l'appli (la page est toujours rechargée en priorité depuis le réseau) */
-const CACHE = "bigoud-trade-v2";
-const FILES = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "apple-touch-icon.png"];
-self.addEventListener("install", e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
-});
+/* Ancien service worker de la racine : l'application est maintenant dans /trade/ (son propre sw.js).
+   Ce fichier supprime l'ancien cache et se désinscrit, pour que la page d'accueil ne soit jamais servie par l'ancienne copie. */
+self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
-});
-self.addEventListener("fetch", e => {
-  const r = e.request;
-  if (r.method !== "GET" || new URL(r.url).origin !== location.origin) return;
-  e.respondWith(
-    fetch(r, { cache: "no-cache" }).then(res => {
-      if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(r, copy)); }
-      return res;
-    }).catch(() => caches.match(r).then(m => m || caches.match("index.html")))
-  );
+  e.waitUntil((async () => {
+    const ks = await caches.keys();
+    await Promise.all(ks.map(k => caches.delete(k)));
+    await self.registration.unregister();
+    const cs = await self.clients.matchAll({ type: "window" });
+    cs.forEach(c => { try { c.navigate(c.url); } catch (e) {} });
+  })());
 });
